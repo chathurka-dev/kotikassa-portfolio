@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# Build outputs
+dist/
+.turbo/
+coverage/
+apps/e2e/playwright-report/
+apps/e2e/test-results/
+apps/e2e/.auth/
+*.tsbuildinfo
+
+# Environment — never commit real credentials
+.env
+.env.local
+.env.*.local
+# But keep the example template
+!.env.local.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/settings.json
+.idea/
+
+# Local AI-assistant configuration and machine-specific instructions
+.claude/
+.codex/
+CLAUDE.md
+AGENTS.md
+**/CLAUDE.md
+**/AGENTS.md
+
+# Supabase local dev
+supabase/.branches
+supabase/.temp
+
+# Logs
+npm-debug.log*
+*.log
+
+# Generated receipt-training exports (images + private labels)
+training-data/

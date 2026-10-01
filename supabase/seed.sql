@@ -1,0 +1,21 @@
+-- ============================================================
+-- Kotikassa — Default Category Seed
+-- Run this via an Edge Function or call after onboarding.
+-- This is NOT run directly — the app calls it with the
+-- new family's ID during the onboarding step.
+-- ============================================================
+-- The app uses this as a template; actual insertion happens
+-- in the onboarding server action with the real family_id.
+-- ============================================================
+--
+-- Default categories:
+-- ('🥦', 'Groceries',           '#16a34a')
+-- ('🍫', 'Snacks & Treats',     '#f59e0b')
+-- ('👕', 'Clothing',            '#3b82f6')
+-- ('🧸', 'Baby & Kids',         '#ec4899')
+-- ('🧴', 'Household & Cleaning','#8b5cf6')
+-- ('⚡', 'Utilities & Bills',   '#0891b2')
+-- ('🚗', 'Transport',           '#64748b')
+-- ('💊', 'Health & Pharmacy',   '#ef4444')
+--
+-- See: packages/shared/src/constants/categories.ts for the JS version

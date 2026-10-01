@@ -1,0 +1,19 @@
+{
+  "name": "@kotikassa/e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "node scripts/run-e2e.mjs",
+    "e2e:no-reset": "node scripts/run-e2e.mjs --no-reset",
+    "e2e:ui": "node scripts/run-e2e.mjs --no-reset --ui",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.54.1",
+    "@supabase/supabase-js": "^2.47.10",
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,40 @@
+# Supabase project configuration
+# Docs: https://supabase.com/docs/guides/cli/config
+
+[project]
+# Your Supabase project ref — find it in:
+# Supabase Dashboard → Project Settings → General → Reference ID
+# Uncomment and set this before running `supabase link`
+# project_id = "your-project-ref-here"
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[local_smtp]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+# Site URL — update to your production domain after deploying
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions]
+# Edge functions go here if needed later

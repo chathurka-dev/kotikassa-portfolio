@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCR Architecture Decision — Kotikassa</title>
+  <style>
+    :root {
+      --purple:       #6c47ff;
+      --purple-light: #f3f0ff;
+      --purple-mid:   #e0d9ff;
+      --green:        #2e7d32;
+      --green-light:  #e8f5e9;
+      --green-mid:    #c8e6c9;
+      --amber:        #b45309;
+      --amber-light:  #fffbeb;
+      --amber-mid:    #fde68a;
+      --red:          #c62828;
+      --red-light:    #ffebee;
+      --red-mid:      #ffcdd2;
+      --blue:         #1565c0;
+      --blue-light:   #e3f2fd;
+      --blue-mid:     #bbdefb;
+      --text:         #1a1a2e;
+      --text-muted:   #555;
+      --text-faint:   #888;
+      --bg:           #f8f9ff;
+      --card:         #ffffff;
+      --border:       #e2e0f0;
+      --radius:       12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: #fff;
+      padding: 60px 40px 50px;
+      text-align: center;
+    }
+    header .badge {
+      display: inline-block;
+      background: rgba(108,71,255,0.4);
+      border: 1px solid rgba(108,71,255,0.6);
+      color: #c4b5fd;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+    header p {
+      font-size: 1.05rem;
+      color: #a0aec0;
+      max-width: 580px;
+      margin: 0 auto;
+    }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 10px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--purple-mid);
+    }
+
+    h2 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    p { margin-bottom: 14px; color: var(--text-muted); }
+    p:last-child { margin-bottom: 0; }
+    section { margin-bottom: 60px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 16px;
+    }
+    .card-green  { background: var(--green-light);  border-color: var(--green-mid);  }
+    .card-red    { background: var(--red-light);    border-color: var(--red-mid);    }
+    .card-amber  { background: var(--amber-light);  border-color: var(--amber-mid);  }
+    .card-purple { background: var(--purple-light); border-color: var(--purple-mid); }
+    .card-blue   { background: var(--blue-light);   border-color: var(--blue-mid);   }
+
+    .insight {
+      border: 2px solid var(--purple);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      background: var(--purple-light);
+      margin: 20px 0;
+    }
+    .insight .label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--purple); margin-bottom: 6px;
+    }
+    .insight p { color: #3d0099; font-weight: 500; margin: 0; }
+
+    /* Pipeline */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 20px 0;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .pipe-step {
+      flex: 1;
+      min-width: 100px;
+      text-align: center;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 6px;
+    }
+    .pipe-step .icon { font-size: 22px; margin-bottom: 4px; }
+    .pipe-step .label { font-size: 12px; font-weight: 600; color: var(--text); }
+    .pipe-step .sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .pipe-step.gone { opacity: 0.35; text-decoration: line-through; }
+    .pipe-step.highlight { border-color: var(--purple); background: var(--purple-light); }
+    .pipe-step.highlight .label { color: var(--purple); }
+    .pipe-step.kept { border-color: var(--green); background: var(--green-light); }
+    .pipe-step.kept .label { color: var(--green); }
+    .pipe-arrow { color: #ccc; font-size: 18px; padding: 0 4px; flex-shrink: 0; }
+    .pipe-arrow.bad { color: #ef4444; }
+    .pipe-arrow.good { color: #22c55e; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.94rem; }
+    th {
+      text-align: left; padding: 9px 14px;
+      background: var(--purple-light); color: var(--purple);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; border-bottom: 2px solid var(--purple-mid);
+    }
+    td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text-muted); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    td strong { color: var(--text); }
+
+    .tag {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 99px;
+    }
+    .tag-del  { background: var(--red-light);   color: var(--red);   }
+    .tag-keep { background: var(--green-light);  color: var(--green); }
+    .tag-add  { background: var(--blue-light);   color: var(--blue);  }
+    .tag-mod  { background: var(--amber-light);  color: var(--amber); }
+
+    /* Code */
+    .code-block {
+      background: #1a1a2e; color: #e2e8f0;
+      border-radius: 10px; padding: 20px 24px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.87rem; line-height: 1.9; margin: 16px 0; overflow-x: auto;
+    }
+    .code-block .comment { color: #4a5568; }
+    .code-block .string  { color: #86efac; }
+    .code-block .keyword { color: #c4b5fd; }
+
+    /* Cost cards */
+    .cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    .cost-card { border-radius: var(--radius); padding: 20px 22px; border: 1.5px solid; }
+    .cost-card.good { background: var(--green-light); border-color: var(--green-mid); }
+    .cost-card.warn { background: var(--amber-light); border-color: var(--amber-mid); }
+    .cost-card .title { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+    .cost-card.good .title { color: var(--green); }
+    .cost-card.warn .title { color: var(--amber); }
+    .cost-card .amount { font-size: 1.9rem; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+    .cost-card.good .amount { color: var(--green); }
+    .cost-card.warn .amount { color: var(--amber); }
+    .cost-card .desc { font-size: 0.87rem; color: var(--text-muted); }
+
+    footer {
+      text-align: center; padding: 36px 24px;
+      color: var(--text-faint); font-size: 0.87rem;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.6rem; }
+      .cost-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Kotikassa — ADR-015 · July 2026</div>
+  <h1>Replacing Tesseract with<br>GPT-4o mini Vision</h1>
+  <p>What changes, what stays, what gets deleted, and why — the complete picture before implementation.</p>
+</header>
+
+<main>
+
+  <!-- WHY -->
+  <section>
+    <div class="section-label">The Problem</div>
+    <h2>Why Tesseract was chosen — and why it has to go</h2>
+
+    <p>Tesseract.js was chosen for one specific reason: it runs entirely inside the browser as a WebWorker. No server needed, no receipt photo leaves the device. That was the right call at the time.</p>
+
+    <p>The problem is accuracy. Tesseract reads each character in isolation — it has no understanding of language or context. On Finnish thermal receipts it makes systematic mistakes:</p>
+
+    <div class="card">
+      <table>
+        <tr><th>What the receipt says</th><th>What Tesseract reads</th><th>Why</th></tr>
+        <tr>
+          <td><strong>0,52 €</strong></td>
+          <td style="color:var(--red)"><strong>8,52 €</strong></td>
+          <td>Thermal printing makes "0" slightly thicker — Tesseract sees a crossbar and reads "8"</td>
+        </tr>
+        <tr>
+          <td><strong>MILKA OREO 100G 1,00 F</strong></td>
+          <td style="color:var(--red)"><strong>item missed entirely</strong></td>
+          <td>The "F" VAT code suffix blocked the price regex — required a parser hotfix</td>
+        </tr>
+        <tr>
+          <td><strong>E 25,5 ... (ALV row)</strong></td>
+          <td style="color:var(--red)"><strong>£ 0 87 (parsed as item)</strong></td>
+          <td>43% confidence — OCR garbled the ALV breakdown line, required another skip pattern</td>
+        </tr>
+        <tr>
+          <td><strong>PRISMA SAVONLINNA</strong></td>
+          <td style="color:var(--red)"><strong>first item line instead</strong></td>
+          <td>Store header not matched — fell through to heuristic, which grabbed wrong line</td>
+        </tr>
+      </table>
+      <p style="margin-top:12px">Every new store format requires another regex fix in <code>parser.ts</code>. There is no end to this.</p>
+    </div>
+  </section>
+
+  <!-- THE DECISION -->
+  <section>
+    <div class="section-label">The Decision</div>
+    <h2>Replace the entire OCR + parser pipeline with GPT-4o mini Vision</h2>
+
+    <p>GPT-4o mini accepts the receipt photo directly and returns structured JSON. It understands Finnish natively, knows that YHTEENSÄ is a total not an item, handles VAT codes, reads context across lines, and works with any store layout without needing a parser rule for each one.</p>
+
+    <h3 style="margin-bottom:14px; margin-top:20px">Before (today)</h3>
+    <div class="pipeline">
+      <div class="pipe-step"><div class="icon">📷</div><div class="label">Receipt photo</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="icon">🖼️</div><div class="label">Preprocessor</div><div class="sub">Canvas API</div></div>
+      <div class="pipe-arrow bad">→<br><small style="font-size:10px">errors</small></div>
+      <div class="pipe-step"><div class="icon">🔍</div><div class="label">Tesseract.js</div><div class="sub">browser WebWorker</div></div>
+      <div class="pipe-arrow bad">→<br><small style="font-size:10px">garbled</small></div>
+      <div class="pipe-step"><div class="icon">⚙️</div><div class="label">parser.ts</div><div class="sub">regex rules</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="icon">✏️</div><div class="label">Review screen</div><div class="sub">user fixes errors</div></div>
+    </div>
+
+    <h3 style="margin-bottom:14px; margin-top:28px">After (Phase 9)</h3>
+    <div class="pipeline">
+      <div class="pipe-step"><div class="icon">📷</div><div class="label">Receipt photo</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step highlight"><div class="icon">🧠</div><div class="label">GPT-4o mini Vision</div><div class="sub">strict JSON schema</div></div>
+      <div class="pipe-arrow good">→<br><small style="font-size:10px">validated</small></div>
+      <div class="pipe-step kept"><div class="icon">✏️</div><div class="label">Review screen</div><div class="sub">user confirms</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step kept"><div class="icon">💾</div><div class="label">Save</div></div>
+    </div>
+
+    <div class="insight">
+      <div class="label">Key Point</div>
+      <p>The review screen stays. The user still sees every item before it is saved and can correct anything GPT got wrong. Nothing is saved automatically — GPT replaces the extraction step, not the human confirmation step.</p>
+    </div>
+  </section>
+
+  <!-- WHAT CHANGES -->
+  <section>
+    <div class="section-label">Implementation</div>
+    <h2>What gets added, deleted, and kept</h2>
+
+    <table>
+      <tr><th>File / Thing</th><th>Action</th><th>Why</th></tr>
+
+      <tr>
+        <td><strong>apps/web/app/api/scan/route.ts</strong><br><small>New Next.js API route</small></td>
+        <td><span class="tag tag-add">ADD</span></td>
+        <td>Accepts one validated compressed JPEG, authenticates either the web cookie session or Expo Bearer token, derives the family server-side, and calls Chat Completions with <code>store: false</code> plus strict Structured Outputs. Zod validates the result before <code>{ storeName, receiptDate, items }</code> is returned.</td>
+      </tr>
+      <tr>
+        <td><strong>OPENAI_API_KEY</strong><br><small>Environment variable</small></td>
+        <td><span class="tag tag-add">ADD</span></td>
+        <td>Added to Vercel project settings and <code>.env.local</code>. Server-side only — never exposed to the browser.</td>
+      </tr>
+      <tr>
+        <td><strong>openai npm package</strong><br><small>apps/web dependency</small></td>
+        <td><span class="tag tag-add">ADD</span></td>
+        <td>OpenAI's official SDK, used only in the API route. Not bundled client-side.</td>
+      </tr>
+      <tr>
+        <td><strong>ReceiptScanner.tsx — OCR call</strong><br><small>apps/web scan component</small></td>
+        <td><span class="tag tag-mod">MODIFY</span></td>
+        <td>Compress once before <code>fetch('/api/scan')</code>, keep that exact JPEG through review, and upload it unchanged on save. The multi-stage progress bar becomes one spinner; review, category memory and mandatory confirmation remain.</td>
+      </tr>
+      <tr>
+        <td><strong>ReceiptScanner.tsx — corrections inserts</strong><br><small>ocr_corrections + ocr_receipt_corrections</small></td>
+        <td><span class="tag tag-keep">KEEP</span></td>
+        <td>Continue recording changed and deleted GPT fields. Combine these deltas with the original validated model JSON and final saved rows; correction rows alone are not a complete accuracy denominator.</td>
+      </tr>
+      <tr>
+        <td><strong>originalOcrItemsRef, originalStoreNameRef, originalDateRef</strong><br><small>refs in ReceiptScanner.tsx</small></td>
+        <td><span class="tag tag-keep">KEEP</span></td>
+        <td>Snapshot the validated GPT result for review diffs and persist the original result with model, prompt, schema, latency and token metadata on every saved scan.</td>
+      </tr>
+      <tr>
+        <td><strong>packages/ocr/src/worker.ts</strong><br><small>Tesseract WebWorker wrapper</small></td>
+        <td><span class="tag tag-del">DELETE</span></td>
+        <td>Tesseract is no longer the primary OCR engine. Deleted once GPT path is verified stable.</td>
+      </tr>
+      <tr>
+        <td><strong>packages/ocr/src/preprocessor.ts</strong><br><small>Adaptive two-pass image preprocessor</small></td>
+        <td><span class="tag tag-del">DELETE</span></td>
+        <td>Was needed because Tesseract is sensitive to illumination and contrast. GPT-4o mini handles noisy, crumpled, uneven-lit receipts natively — preprocessing is unnecessary and adds latency.</td>
+      </tr>
+      <tr>
+        <td><strong>packages/ocr/src/parser.ts</strong><br><small>Finnish regex parser</small></td>
+        <td><span class="tag tag-del">DELETE</span></td>
+        <td>Every rule in parser.ts (skip patterns, VAT code stripping, store patterns, date parsing, quantity extraction) is now handled by the GPT system prompt. The entire maintenance burden disappears.</td>
+      </tr>
+      <tr>
+        <td><strong>packages/ocr/src/categorizer.ts</strong><br><small>Keyword → category mapper</small></td>
+        <td><span class="tag tag-mod">MOVE</span></td>
+        <td>Move to <code>packages/shared/src/utils/categorizer.ts</code>, change its shared-package self-import to a relative import, and export it from both web and native shared entry points.</td>
+      </tr>
+      <tr>
+        <td><strong>compressForUpload() in ReceiptScanner.tsx</strong><br><small>Canvas image compression</small></td>
+        <td><span class="tag tag-mod">MODIFY</span></td>
+        <td>Move compression from save-time to scan-time. Resize and detail level control vision cost; JPEG quality primarily controls transfer and Storage size.</td>
+      </tr>
+      <tr>
+        <td><strong>Supabase Storage upload</strong><br><small>Receipt image stored in bucket</small></td>
+        <td><span class="tag tag-keep">KEEP</span></td>
+        <td>Receipt images stored in Supabase Storage become the training data for a future own model (paired with the items saved in <code>expense_items</code>). Critical to keep.</td>
+      </tr>
+      <tr>
+        <td><strong>Review screen, save flow, item-category memory</strong><br><small>All of ReceiptScanner.tsx review UI</small></td>
+        <td><span class="tag tag-keep">KEEP</span></td>
+        <td>Unchanged. User still reviews every item, can edit names/prices/categories, and can delete items before saving.</td>
+      </tr>
+      <tr>
+        <td><strong>Mobile receipt scanning</strong><br><small>apps/mobile — ADR-013</small></td>
+        <td><span class="tag tag-add">ADD (mobile)</span></td>
+        <td>Mobile installs Expo-compatible camera and image-manipulation packages, sends an orientation-correct JPEG to the absolute web API URL with its Supabase Bearer token, then implements a native review, Storage upload, save, correction and metadata flow.</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- TRAINING DATA -->
+  <section>
+    <div class="section-label">Training Data Strategy</div>
+    <h2>How you collect training data for a future own model</h2>
+
+    <p>The goal of eventually replacing GPT with your own model (like Donut) is still achievable — the strategy just changes.</p>
+
+    <div class="card card-amber" style="margin-bottom:20px">
+      <h3 style="color:var(--amber)">Old approach (Tesseract world) — no longer valid</h3>
+      <p style="margin-top:8px">Collect <em>text correction pairs</em>: what Tesseract said → what user corrected. Train a language model to fix Tesseract's text output.</p>
+      <p>Problem: Tesseract text is not the goal. The goal is receipt image → structured JSON.</p>
+    </div>
+
+    <div class="card card-green">
+      <h3 style="color:var(--green)">New approach (GPT world) — collect reproducible image labels</h3>
+      <p style="margin-top:8px">Each saved scan can produce a training pair when the image upload succeeds and every included label is confirmed as visible in the receipt:</p>
+      <table style="margin-top:12px">
+        <tr>
+          <th>Training input</th>
+          <th>Training output</th>
+          <th>Where stored</th>
+        </tr>
+        <tr>
+          <td><strong>Receipt photo</strong></td>
+          <td><strong>Correct structured items</strong></td>
+          <td><code>receipts.image_url</code> + <code>expense_items</code> joined on <code>receipt_id</code></td>
+        </tr>
+      </table>
+      <p style="margin-top:12px">Phase 9 adds scan provenance, the validated original model result, deterministic line order, and an <code>is_on_receipt</code> label. Roughly 500 receipts is an initial collection target followed by evaluation, not a guarantee that a specific future model is ready.</p>
+
+      <h3 style="color:var(--green); margin-top:18px">Critical export filters — do not omit</h3>
+      <table style="margin-top:10px">
+        <tr><th>Filter</th><th>Why it matters</th></tr>
+        <tr>
+          <td><code>WHERE r.status = 'confirmed'</code></td>
+          <td>Excludes abandoned uploads where the user never completed the save flow</td>
+        </tr>
+        <tr>
+          <td><code>AND e.is_on_receipt = TRUE</code></td>
+          <td>Includes GPT items and manually added lines that GPT missed, while excluding extras not visible in the image. <code>is_manual</code> remains provenance only.</td>
+        </tr>
+        <tr>
+          <td><code>AND r.image_url IS NOT NULL</code></td>
+          <td>Excludes saved receipts whose Storage upload failed and therefore have no training image.</td>
+        </tr>
+        <tr>
+          <td><code>HAVING COUNT(e.id) &gt; 0</code></td>
+          <td>Excludes receipts where the user deleted every item on the review screen</td>
+        </tr>
+      </table>
+      <p style="margin-top:12px"><strong>Image access:</strong> <code>receipts.image_url</code> stores a Supabase Storage path (e.g. <code>familyId/1234.jpg</code>), not a public URL. Downloading images for model-development export requires the <strong>service role key</strong> — use it from a server-side script, never from client code. See ADR-016, migrations 029–031, and <code>docs/setup.md</code> for the governed export process.</p>
+    </div>
+
+    <div class="insight">
+      <div class="label">The Exit from GPT Dependency</div>
+      <p>The dataset grows through reviewed scans, but model readiness depends on diversity, image quality, labels and held-out evaluation. Donut is one possible future option, not a guaranteed choice or timeline.</p>
+    </div>
+  </section>
+
+  <!-- COST -->
+  <section>
+    <div class="section-label">Cost</div>
+    <h2>What this costs</h2>
+
+    <div class="cost-grid">
+      <div class="cost-card good">
+        <div class="title">Per receipt scan</div>
+        <div class="amount">~€0.01</div>
+        <div class="desc">Planning estimate only. Record actual token usage, model, detail level and latency for every saved scan.</div>
+      </div>
+      <div class="cost-card warn">
+        <div class="title">Monthly (20 scans/week)</div>
+        <div class="amount">€3–5</div>
+        <div class="desc">Family scanning groceries weekly. No separate server needed — runs as a Next.js API route on existing Vercel deployment.</div>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>Scenario</th><th>Monthly cost</th></tr>
+      <tr><td>Light use — 5 scans/week</td><td>~€1</td></tr>
+      <tr><td>Normal family — 20 scans/week</td><td>~€3–5</td></tr>
+      <tr><td>Heavy use — 50 scans/week</td><td>~€10–15</td></tr>
+      <tr><td>After a future own model passes evaluation</td><td>Hosting cost replaces OpenAI usage cost</td></tr>
+    </table>
+  </section>
+
+  <!-- PRIVACY -->
+  <section>
+    <div class="section-label">Privacy</div>
+    <h2>What changes about where receipt data goes</h2>
+
+    <div class="card card-red">
+      <h3>Today (Tesseract)</h3>
+      <p style="margin-top:8px">Receipt photo is processed entirely inside the user's browser. The image never leaves the device for OCR. Only the extracted text and item data go to Supabase.</p>
+    </div>
+
+    <div class="card card-amber">
+      <h3>After (GPT-4o mini)</h3>
+      <p style="margin-top:8px">The compressed receipt photo is sent to OpenAI's API servers for processing with application storage disabled. OpenAI's API data is not used for model training by default; applicable abuse-monitoring logs may be retained for up to 30 days. The confirmed image is also stored in Supabase Storage.</p>
+    </div>
+
+    <p>For a family budgeting app, this trade-off is acceptable. If privacy is a hard requirement in the future, the own-model path (Donut on your own server) restores full privacy.</p>
+  </section>
+
+  <!-- FALLBACK -->
+  <section>
+    <div class="section-label">Resilience</div>
+    <h2>What happens when GPT is unavailable</h2>
+
+    <p>OpenAI's API has occasional downtime. The scan route should handle this gracefully.</p>
+
+    <div class="card">
+      <h3>Fallback strategy</h3>
+      <p style="margin-top:8px">The <code>/api/scan</code> route returns a clear error if the OpenAI call fails. <code>ReceiptScanner.tsx</code> catches this and shows the user a message: <em>"Automatic scanning is temporarily unavailable. You can add items manually."</em></p>
+      <p>Tesseract is not kept as a silent code fallback — maintaining two OCR paths adds complexity and the Tesseract path produces poor results anyway. The manual entry fallback is the right answer.</p>
+    </div>
+
+    <div class="insight">
+      <div class="label">Why not keep Tesseract as fallback?</div>
+      <p>Tesseract produces incorrect data that users then have to fix. Showing the user wrong items silently is worse than showing a clear "unavailable" message. A bad fallback is worse than no fallback.</p>
+    </div>
+  </section>
+
+  <!-- WHAT STAYS WRONG -->
+  <section>
+    <div class="section-label">Honest Assessment</div>
+    <h2>What this does not fix</h2>
+
+    <div class="card">
+      <table>
+        <tr><th>Remaining limitation</th><th>Mitigation</th></tr>
+        <tr>
+          <td><strong>Requires internet</strong><br>Scanning won't work offline</td>
+          <td>Manual entry always available. Offline scanning could be added later with an on-device model.</td>
+        </tr>
+        <tr>
+          <td><strong>Monthly API cost</strong><br>~€3–5/month for normal family use</td>
+          <td>Measure actual usage. A future self-hosted model may replace this cost only after its own evaluation passes.</td>
+        </tr>
+        <tr>
+          <td><strong>Receipt photo sent to OpenAI</strong><br>Not fully private</td>
+          <td>Disclose provider processing and retention in both locales. OpenAI API does not train on API data by default; a future own-model path can reduce third-party processing.</td>
+        </tr>
+        <tr>
+          <td><strong>GPT can occasionally hallucinate</strong><br>Adding items that are not on the receipt</td>
+          <td>The review screen catches this — user confirms every item before saving. Nothing is auto-saved.</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Kotikassa &mdash; ADR-015 &mdash; GPT-4o mini Vision for Receipt Scanning &mdash; July 2026
+</footer>
+
+</body>
+</html>
